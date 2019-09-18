@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=bwamapping      # create a short name for your job
+#SBATCH --job-name=testCutadapt      # create a short name for your job
 #SBATCH --nodes=1                # node count
 #SBATCH --ntasks-per-node=1      # total number of tasks across all nodes
 #SBATCH --cpus-per-task=1        # cpu-cores per task (>1 if multithread tasks)
@@ -23,8 +23,15 @@ in_fastq2=/Genomics/ayroleslab2/alea/archive_raw_fastq/Project_AYR_13560_B01_NAN
 # define output
 out_fastq1=/scratch/tmp/yushi/$barcode.trim.R1.fastq.gz
 out_fastq2=/scratch/tmp/yushi/$barcode.trim.R2.fastq.gz
+out_sam=/scratch/tmp/yushi/$barcode.hg38.sam
+out_bam=/scratch/tmp/yushi/$barcode.hg38.bam
 
 originalpath=$PATH
-export PATH=/Genomics/grid/users/yushit/.local/bin/:$PATH
-cutadapt --nextseq-trim 20 -e 0.05 --overlap 2 --minimum-lengt=20 --trim-n -a AGATCGGAAGAGC -A AGATCGGAAGAGC -o $out_fastq1 -p $out_fastq2 $in_fastq1 $in_fastq2
+export PATH=/Genomics/grid/users/yushit/.local/bin/bwa-0.7.17/:$PATH
+bwa mem -t 8 /Genomics/ayroleslab2/alea/ref_genomes/hg38/hg38_all_chr.fa $in_fastq1 $in_fastq2 > $out_sam
 PATH=$originalpath
+
+module load samtools
+samtools view -Sbq 1 $out_sam > $out_bam
+echo $barcode
+samtools view $out_bam | wc -l

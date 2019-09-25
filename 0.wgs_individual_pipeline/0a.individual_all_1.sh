@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=testCutadapt      # create a short name for your job
+#SBATCH --job-name=bwamapping      # create a short name for your job
 #SBATCH --nodes=1                # node count
-#SBATCH --ntasks-per-node=1      # total number of tasks across all nodes
-#SBATCH --cpus-per-task=8        # cpu-cores per task (>1 if multithread tasks)
+#SBATCH --ntasks-per-node=2      # total number of tasks across all nodes
+#SBATCH --cpus-per-task=2        # cpu-cores per task (>1 if multithread tasks)
 #SBATCH --mem=10G                # memory per node
-#SBATCH --time=144:00:00          # total run time limit (HH:MM:SS)
+#SBATCH --time=24:00:00          # total run time limit (HH:MM:SS)
 #SBATCH --mail-type=begin        # send mail when process begins
 #SBATCH --mail-type=end          # send email when job ends
 #SBATCH --mail-user=yushifelixtang@gmail.com
@@ -26,11 +26,18 @@ out_fastq2=/scratch/tmp/yushi/$barcode.trim.R2.fastq.gz
 out_sam=/scratch/tmp/yushi/$barcode.hg38.sam
 out_bam=/scratch/tmp/yushi/$barcode.hg38.bam
 
+echo 'trimming...'
 originalpath=$PATH
-export PATH=/Genomics/grid/users/yushit/.local/bin/bwa-0.7.17/:$PATH
-bwa mem -t 8 /Genomics/ayroleslab2/alea/ref_genomes/hg38/hg38_all_chr.fa $in_fastq1 $in_fastq2 > $out_sam
+export PATH=/Genomics/grid/users/yushit/.local/bin/:$PATH
+cutadapt --nextseq-trim 20 -e 0.05 --overlap 2 --minimum-lengt=20 --trim-n -a AGATCGGAAGAGC -A AGATCGGAAGAGC -o $out_fastq1 -p $out_fastq2 $in_fastq1 $in_fastq2
 PATH=$originalpath
 
+echo 'mapping...'
+export PATH=/Genomics/grid/users/yushit/.local/bin/bwa-0.7.17/:$PATH
+bwa mem -t 2 /Genomics/ayroleslab2/alea/ref_genomes/hg38/hg38_all_chr.fa $out_fastq1 $out_fastq2 > $out_sam
+PATH=$originalpath
+
+echo 'bam counting...'
 module load samtools
 samtools view -Sbq 1 $out_sam > $out_bam
 echo $barcode
